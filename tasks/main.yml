@@ -76,13 +76,13 @@
   tags:
     - service
 
-- name: "Include nginx vars for nginx role to kick-in"
-  include_vars: nginx.yml
-  when: nexus_nginx_reverse_proxy is defined
-  tags:
-    - reverse_proxy
+#- name: "Include nginx vars for nginx role to kick-in"
+#  include_vars: nginx.yml
+#  when: nexus_nginx_reverse_proxy is defined
+#  tags:
+#    - reverse_proxy
 
-- debug: var=nginx_vhosts
-  when: nexus_nginx_reverse_proxy is defined
-  tags:
-    - reverse_proxy
+#- debug: var=nginx_vhosts
+#  when: nexus_nginx_reverse_proxy is defined
+#  tags:
+#    - reverse_proxy
