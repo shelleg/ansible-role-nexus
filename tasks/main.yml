@@ -1,0 +1,88 @@
+---
+# tasks file for ansible-role-nexus
+
+- name: "Add Nexus group"
+  group: name={{ nexus.group }}
+
+- name: "Add Nexus user"
+  user:
+    name: "{{ nexus.user }}"
+    group: "{{ nexus.group }}"
+    home: "{{ nexus.home_dir }}"
+    system: yes
+
+- name: "Get Nexus Archive"
+  become_user: "{{ nexus.user }}"
+  become: true
+  get_url:
+    url: "{{ nexus_download_url }}"
+    dest: /tmp/nexus-{{ nexus_version }}-unix.tar.gz
+    mode: 0440
+
+- shell: "tar zxf /tmp/nexus-{{ nexus_version }}-unix.tar.gz"
+  args:
+    chdir: /opt/
+    executable: /bin/bash
+
+- name: "Change ownership for nexus user"
+  file:
+    path: "/opt/nexus-{{ nexus_version }}/"
+    state: directory
+    recurse: yes
+    owner: "{{ nexus.user }}"
+    group: "{{ nexus.group }}"
+    mode: 0755
+
+- name: "Symbolic link between nexus-{{ nexus_version }} and /nexus"
+  become: yes
+  file:
+    src: "{{ nexus_versioned_dir }}"
+    dest: "{{ nexus_linked_dir }}"
+    state: link
+
+- name: "Link service file ..."
+  become: yes
+  file:
+    src: "{{ nexus_linked_dir }}/bin/nexus"
+    dest: "/etc/init.d/nexus"
+    state: link
+
+- name: "Generate nexus conf file(s)"
+  template:
+    src: "{{ item }}.j2"
+    dest: "/opt/nexus-{{ nexus_version }}/bin/{{ item }}"
+    owner: "{{ nexus.user }}"
+    group: "{{ nexus.user }}"
+    mode: 0755
+  with_items:
+    - nexus.rc
+    - nexus.vmoptions
+  tags:
+    - conf
+
+- name: "Create nexuse data dir with user/group perms"
+  file:
+    path: "{{ nexus_data_dir }}"
+    state: directory
+    owner: "{{ nexus.user }}"
+    group: "{{ nexus.group }}"
+    mode: 0774
+
+- name: "Enable {{ nexus_service_name }} as a service and start it."
+  service:
+    name: "{{ nexus_service_name }}"
+    state: restarted
+    enabled: yes
+  tags:
+    - service
+
+- name: "Include nginx vars for nginx role to kick-in"
+  include_vars: nginx.yml
+  when: nexus_nginx_reverse_proxy is defined
+  tags:
+    - reverse_proxy
+
+- debug: var=nginx_vhosts
+  when: nexus_nginx_reverse_proxy is defined
+  tags:
+    - reverse_proxy
