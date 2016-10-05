@@ -50,7 +50,7 @@
 - name: "Generate nexus conf file(s)"
   template:
     src: "{{ item }}.j2"
-    dest: "/opt/nexus-{{ nexus_version }}/bin/{{ item }}"
+    dest: "{{ nexus_linked_dir }}/bin/{{ item }}"
     owner: "{{ nexus.user }}"
     group: "{{ nexus.user }}"
     mode: 0755
